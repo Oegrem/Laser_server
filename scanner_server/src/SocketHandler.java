@@ -35,10 +35,10 @@ public class SocketHandler {
 				String output = "[";
 				for (int i = 0; i < ConnectionManager.SessionCount() - 1; i++) {
 					Session s = ConnectionManager.getSession(i);
-					output = output + "\"" + s.getId() + "\"" + ",";
+					output += "\"" + s.getId() + "\"" + ",";
 				}
-				output = output
-						+ "\""
+				output +=
+						 "\""
 						+ ConnectionManager.getSession(
 								ConnectionManager.SessionCount() - 1).getId()
 						+ "\"" + "]";
@@ -68,28 +68,6 @@ public class SocketHandler {
 		ConnectionManager.SessionRemove(session);
 		System.out.println("Close Client.");
 
-		// Alle Session-IDs aus Connection-Manager auslesen in einem JSON-String
-		// speichern
-		String output = "[";
-		for (int i = 0; i < ConnectionManager.SessionCount(); i++) {
-			Session s = ConnectionManager.getSession(i);
-			output = output + "\"" + s.getId() + "\"" + ",";
-		}
-		output = output
-				+ "\""
-				+ ConnectionManager.getSession(
-						ConnectionManager.SessionCount() - 1).getId() + "\""
-				+ "]";
-
-		// Broadcasting : JSON-String an alle Web-Socket-Verbindungen senden
-		for (int i = 0; i < ConnectionManager.SessionCount(); i++) {
-			Session s = ConnectionManager.getSession(i);
-			try {
-				s.getBasicRemote().sendText(output, true);
-			} catch (IOException e) {
-				// ignore
-			}
-		}
 	}
 
 	@OnMessage
@@ -101,39 +79,22 @@ public class SocketHandler {
 		try {
 			sMessage = new SocketMessage(msg);
 		} catch (JSONException e2) {
-			// TODO Auto-generated catch block
 			e2.printStackTrace();
 			sendError(session, 0, "Fehlerhafte Nachricht erhalten!");
 		}
 		switch (sMessage.GetMessageType()) {
 		case 1:
 
-			p = Quiz.getInstance().createPlayer(
-					((String) sMessage.GetMessage()[0]), qError);
-
-			if (qError.isSet()) {
-				System.out.println("Login Error: Code: "
-						+ Integer.toString(qError.getStatus()));
-				sendError(session, 1, "Spieler konnte nicht erstellt werden: "+qError.getDescription());
-			}
 			try {
 				session.getBasicRemote().sendText(
-						new SocketMessage(2, new Object[] { p.getId() })
+						new SocketMessage(2, new Object[] { 1 })
 								.GetJsonString());
 			} catch (JSONException e2) {
-				// TODO Auto-generated catch block
 				e2.printStackTrace();
 				sendError(session, 1, "LoginResponseOK konnte nicht erstellt werden!");
 			}
 			break;
 		case 5:
-			q.changeCatalog(p, (String) sMessage.GetMessage()[0] + ".xml",
-					qError);
-			if (qError.isSet()) {
-				System.out.println(qError.getDescription());
-				sendError(session, 1, "Spieler konnte nicht erstellt werden: "+qError.getDescription());
-				return;
-			}
 			for (int i = 0; i < ConnectionManager.SessionCount(); i++) {
 				Session s = ConnectionManager.getSession(i);
 				try {
@@ -143,103 +104,6 @@ public class SocketHandler {
 				} catch (IOException | JSONException e) {
 					// ignore
 				}
-			}
-			break;
-		case 7:
-			q.startGame(p, qError);
-			if (qError.isSet()) {
-				System.out.println(qError.getDescription());
-				sendError(session, 1, "Spiel konnte nicht gestartet werden: "+qError.getDescription());
-				return;
-			}
-			for (int i = 0; i < ConnectionManager.SessionCount(); i++) {
-				Session s = ConnectionManager.getSession(i);
-				try {
-					s.getBasicRemote().sendText(
-							new SocketMessage(7, sMessage.GetMessage())
-									.GetJsonString());
-				} catch (IOException | JSONException e) {
-					// ignore
-				}
-			}
-			break;
-		case 8:
-			curTimeOut = new Timer(p, session);
-			Question question = q.requestQuestion(p, curTimeOut, qError);
-			if (qError.isSet()) {
-				System.out.println("Error: "+qError.getDescription());
-				sendError(session, 1, "Konnte Question nicht laden: "+qError.getDescription());
-
-			} else if (question == null && !qError.isSet()) {
-				System.out.println("Question ist null");
-				if(q.setDone(p)){
-					System.out.println("Spiel ende");
-					for (int i = 0; i < ConnectionManager.SessionCount(); i++) {
-						Session s = ConnectionManager.getSession(i);
-						try {
-							s.getBasicRemote().sendText(
-									new SocketMessage(12, new Object[]{true})
-											.GetJsonString());
-						} catch (IOException | JSONException e) {
-							// ignore
-						}
-					}
-					for(Player pTemp : q.getPlayerList()){
-						q.removePlayer(pTemp, qError);
-						if(qError.isSet()){
-							System.out.println(qError.getDescription());
-						}	
-					}
-				}else{
-					System.out.println("Spieler ende");
-					try {
-						session.getBasicRemote().sendText(new SocketMessage(12, new Object[]{false}).GetJsonString());
-					} catch (JSONException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-						sendError(session, 0, "Erstellen der GameOver Nachricht fehlgeschlagen!");
-					}
-				}
-			}else{
-			String[] answers = new String[4];
-			int i = 0;
-			try{
-			for (String s : question.getAnswerList()) {
-					answers[i] = s;
-				i++;
-			}
-			}catch (NullPointerException e) {
-				// TODO: handle exception
-				e.printStackTrace();
-			}
-			try {
-				session.getBasicRemote().sendText(
-						new SocketMessage(9, new Object[] { question.getQuestion(),
-								answers[0], answers[1], answers[2], answers[3],
-								(int) (question.getTimeout()/1000) }).GetJsonString());
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				sendError(session, 0, "Erstellen der Question Message fehlgeschlagen");
-			}
-			}
-			break;
-		case 10:
-			long rightAnswer = q.answerQuestion(p,
-					(long) sMessage.GetMessage()[0], qError);
-			if (qError.isSet()) {
-				System.out.println(qError.getDescription());
-				sendError(session, 1, "AnswerQuestion fehlgeschlagen: "+qError.getDescription());
-				return;
-			}
-			try {
-				session.getBasicRemote().sendText(
-						new SocketMessage(11, new Object[] { false, rightAnswer })
-								.GetJsonString());
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				sendError(session, 0, "QuestionResult senden fehlgeschlagen!");
 			}
 			break;
 		}
@@ -253,7 +117,6 @@ public class SocketHandler {
 		try {
 			session.getBasicRemote().sendText(new SocketMessage(255, new Object[]{fatal, message}).GetJsonString());
 		} catch (JSONException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

@@ -1,27 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+	<head>
 
-<script src="javaScript.js" type="text/javascript"></script>
-<link rel="stylesheet" type="text/css" href="stylesheet.css">
-<title>Laser Scanner</title>
-<meta charset="utf-8">
-<meta name="description" content="Laser Scanner">
-<meta name="author" content="Tobias">
-</head>
-<body>
-	<header>
-		<div id="titel">
-			<h1 id="laufSchrift">&Dagger; Laser Scanner &Dagger;</h1>
-		</div> 
-	</header>
-	<div id="center">
-		<div id="main">
-		<canvas id="can" width="200" height="200"></canvas>
+		<script src="javaScript.js" type="text/javascript"></script>
+		<link rel="stylesheet" type="text/css" href="stylesheet.css">
+		<title>Laser Scanner</title>
+		<meta charset="utf-8">
+		<meta name="description" content="Laser Scanner">
+		<meta name="author" content="Tobias">
+	</head>
+	<body>
+		<header>
+			<div id="titel">
+				<h1 id="laufSchrift">&Dagger; Laser Scanner &Dagger;</h1>
+			</div>
+		</header>
+		<div id="center">
+			<canvas id="can" width="500" height="500" style="border-style:dotted; float:center"></canvas>
+			<div id="main">
+
+				<div id="scale_up" style="width:100px; font-size:30px; border-style:solid; float:left">
+					+
+				</div>
+				<div id="scale_down" style="width:100px; font-size:30px; border-style:solid">
+					-
+				</div>
+				<div id="reset" style="width:100px; font-size:30px; border-style:solid">
+					Reset
+				</div>
+				<div id="chDataIndex" style="width:100px; font-size:30px; border-style:solid">
+					Change Data
+				</div>
+				<div id="record" style="width:100px; font-size:30px; border-style:solid">
+					Record
+				</div>
+			</div>
 		</div>
-	</div>
-	<footer>
-		<p>&Dagger; Footer &Dagger;</p>
-	</footer>
-</body>
+		<footer>
+			<p>
+				&Dagger; Footer &Dagger;
+			</p>
+		</footer>
+	</body>
 </html>

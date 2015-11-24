@@ -10,55 +10,57 @@ var request;
 var socket;
 var readyToSend = false;
 
-var playerId = -1;
-
-var curQuestion = "";
-var curAnswer1 = "";
-var curAnswer2 = "";
-var curAnswer3 = "";
-var curAnswer4 = "";
-var curTimeOut = 0;
-
-var curSelection = -1;
-
-var curPlayerList;
-
 var isQuestionActive = false;
 
+var isRecording = false;
+
+var scaling = 1;
+
+var mouseDeltaX = -1;
+var mouseDeltaY = -1;
+
+var xMove = 0;
+var yMove = 0;
+
+var x;
+var y;
+var l;
+var w;
+var c;
+var ctx;
+
+var mdFlag = 0;
+
 function sseDataListener(event) {
-	var playerList = JSON.parse(event.data).playerList;
-	var table = document.getElementById("table1").getElementsByTagName("tbody")[0];
-	while (table.firstChild) {
-		table.removeChild(table.firstChild);
-	}
-	playerList.sort(function(a, b) {
-		return b.score-a.score;
-	});
-	curPlayerList = playerList;
-	for (var i = 0; i < playerList.length; i++) {
-		var row = table.insertRow();
+	var data = JSON.parse(event.data);
+	var pList = data.pointList;
+	ctx.clearRect((-c.width / 2) * (1 / scaling) - xMove, (-c.height / 2)
+			* (1 / scaling) - yMove, c.width * (1 / scaling), c.height
+			* (1 / scaling));
 
-		var cellPlayer = row.insertCell();
-		cellPlayer.textContent = playerList[i].name;
-
-		var cellScore = row.insertCell();
-		cellScore.textContent = playerList[i].score;
+	for (var b = 0; b < 360; b++) {
+		ctx.fillRect(Math.cos(b) * 30, Math.sin(b) * 30, 2, 2);
 	}
-	var sButton = document.getElementById("startButton");
-	if (sButton != null) {
-		if (playerId == 0) {
-			if (playerList.length > 1 && sButton.disabled) {
-				sButton.disabled = false;
-				sButton.style.fontSize = "20px";
-				sButton.textContent = "Start";
-			}
-			if (playerList.length < 2 && sButton.disabled == false) {
-				sButton.disabled = true;
-				sButton.style.fontSize = "16px";
-				sButton.textContent = "Warte auf weitere Spieler...";
-			}
+
+	switch(data.d){
+	case 1:
+		for (var i = 0; i < pList.length; i++) {
+			x = pList[i].x;
+			y = pList[i].y;
+			ctx.fillRect(x, y, 2, 2);
 		}
+		break;
+	case 2:
+		for (var i = 0; i < pList.length; i++) {
+			x = pList[i].x;
+			y = pList[i].y;
+			l = pList[i].l;
+			w = pList[i].w;
+			ctx.fillRect(x, y, l, w);
+		}
+		break;
 	}
+	
 }
 
 function socketReceive(message) {
@@ -92,13 +94,13 @@ function socketReceive(message) {
 		break;
 	case 11:
 		console.log("Correct: " + sMessage.correct);
-		
+
 		document.getElementById(curSelection).style.borderColor = "red";
 		document.getElementById(curSelection).style.backgroundColor = "#FF0800";
-		
+
 		document.getElementById(sMessage.correct).style.borderColor = "green";
 		document.getElementById(sMessage.correct).style.backgroundColor = "#8DB600";
-				
+
 		isQuestionActive = false;
 		window.setTimeout(function() {
 			socketSend(8);
@@ -106,13 +108,13 @@ function socketReceive(message) {
 		break;
 	case 12:
 		console.log("Spiel ende!");
-		GameOver(sMessage);
+	//	GameOver(sMessage);
 		break;
 	case 255:
-		if(sMessage.fatal == 1){
-		ErrorBlinken(sMessage.errorMessage);
-		}else{
-			console.log("Warning: "+sMessage.errorMessage);
+		if (sMessage.fatal == 1) {
+			ErrorBlinken(sMessage.errorMessage);
+		} else {
+			console.log("Warning: " + sMessage.errorMessage);
 		}
 		break;
 	default:
@@ -125,7 +127,6 @@ function socketSend(type) {
 		// Senden
 		var messageType = type;
 		var jsonSend;
-		var selection = curSelection;
 		switch (messageType) {
 		case 1:
 			var loginName = document.getElementById("inputBox").value;
@@ -157,7 +158,24 @@ function socketSend(type) {
 				selection : selection
 			});
 			break;
+		case 11:
+			jsonSend = JSON.stringify({
+				messageType : messageType
+			});
+		case 12:
+			jsonSend = JSON.stringify({
+				messageType : messageType
+			});
+			break;
+		case 35:
+			jsonSend = JSON.stringify({
+				messageType : messageType
+			});
+			break;
 		default:
+			jsonSend = JSON.stringify({
+				messageType : messageType
+			});
 			break;
 		}
 
@@ -168,7 +186,7 @@ function socketSend(type) {
 function init() {
 	var buttons = document.getElementsByClassName("button");
 
-	/*var url = 'ws://localhost:8080/scanner_server/SocketHandler';
+	var url = 'ws://localhost:8080/scanner_server/SocketHandler';
 	socket = new WebSocket(url);
 
 	socket.onopen = function() {
@@ -185,21 +203,77 @@ function init() {
 
 	socket.onmessage = socketReceive;
 
-	for (var c = 0; c < buttons.length; c++) {
-		buttons[c].addEventListener("mouseover", hoverButton, false);
-		buttons[c].addEventListener("mouseleave", leaveButton, false);
-		buttons[c].addEventListener("click", clickButton, false);
-		buttons[c].isChosen = false;
-	}
+	var record = document.getElementById("record");
 
-	var loginButton = document.getElementById("loginButton");
+	record.addEventListener("click", function() {
+		if (!isRecording) {
+			socketSend(11);
+			isRecording = true;
+			record.innerHTML = "Stop";
+		} else {
+			socketSend(12);
+			isRecording = false;
+			record.innerHTML = "Record";
+		}
+	}, false);
+	
+	var chDataIndex = document.getElementById("chDataIndex");
 
-	loginButton.addEventListener("click", function() {
-		socketSend(1);
+	chDataIndex.addEventListener("click", function(){
+		socketSend(35);
+	}, false);
+	
+	c = document.getElementById("can");
+	ctx = c.getContext("2d");
+	ctx.moveTo(0, 0);
+	ctx.translate(c.width / 2, c.height / 2);
+	ctx.scale(1, -1);
+
+	var scale_up = document.getElementById("scale_up");
+
+	scale_up.addEventListener("click", function() {
+		ctx.scale(1.1, 1.1);
+		scaling *= 1.1;
 	}, false);
 
-	document.getElementById("table1").getElementsByTagName("tbody")[0]
-			.addEventListener("mousedown", tableClickListener, false);
+	var scale_down = document.getElementById("scale_down");
+
+	scale_down.addEventListener("click", function() {
+		ctx.scale(0.9, 0.9);
+		scaling *= 0.9;
+	}, false);
+
+	var reset = document.getElementById("reset");
+	reset.addEventListener("click", function() {
+		ctx.scale(1 / scaling, 1 / scaling);
+		scaling = 1;
+
+		ctx.translate(-xMove, -yMove);
+		xMove = 0;
+		yMove = 0;
+	}, false);
+
+	c.addEventListener("mousedown", function() {
+		mdFlag = 1;
+		mouseDeltaX = event.pageX;
+		mouseDeltaY = event.pageY;
+	}, false);
+
+	c.addEventListener("mousemove", function(event) {
+		if (mdFlag == 1) {
+			var xDelta = event.pageX - mouseDeltaX;
+			var yDelta = mouseDeltaY - event.pageY;
+			ctx.translate(xDelta, yDelta);
+			xMove += xDelta;
+			yMove += yDelta;
+			mouseDeltaX = event.pageX;
+			mouseDeltaY = event.pageY;
+		}
+	}, false);
+
+	c.addEventListener("mouseup", function() {
+		mdFlag = 0;
+	}, false);
 
 	var source = new EventSource("SSEServlet");
 	source.addEventListener('message', sseDataListener, false);
@@ -212,16 +286,6 @@ function init() {
 		} else
 			console.log("Error: SSE");
 	}, false);
-*/
-	var c = document.getElementById("can");
-	var ctx = c.getContext("2d");
-	ctx.moveTo(0,0);
-	window.setInterval(function() {
-	var randx = Math.floor((Math.random() * 200) + 10);
-	var randy = Math.floor((Math.random() * 200) + 10);
-	ctx.clearRect(0,0,c.width,c.height);
-	ctx.fillRect(randx,randy,2,2);
-	} ,1000);
 }
 
 function hoverButton(event) {
