@@ -1,6 +1,12 @@
+import static org.lwjgl.opengl.GL11.GL_POINTS;
+import static org.lwjgl.opengl.GL11.glBegin;
+import static org.lwjgl.opengl.GL11.glColor3f;
+import static org.lwjgl.opengl.GL11.glVertex2f;
+
 import java.awt.Point;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Vector;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.ServletException;
@@ -9,6 +15,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import code_snippets.clusterLineStrip;
+import code_snippets.clusterPoint;
+import code_snippets.dbscan;
+import code_snippets.dbscan;
 import data_processing.Cluster;
 import laser_distance_scanner.Distance_scanner;
 import laser_distance_scanner.SynchronListHandler;
@@ -26,8 +36,6 @@ public class SSEServlet extends HttpServlet {
 	private static Integer sseCount = 0;
 
 	public static int dataIndex = 1;
-
-	private static Distance_scanner scn;
 
 	public SSEServlet() {
 
@@ -50,9 +58,9 @@ public class SSEServlet extends HttpServlet {
 
 		sseCount++;
 		if (sseCount == 1) {
-			Distance_scanner.setInstantSimulation(true);
-			scn = Distance_scanner.getDistanceScanner("sim1");
-			scn.start();
+			Distance_scanner.setInstantSimulation(true); // call and set to true
+			Distance_scanner.alternativeSimFile = "walk";
+			Distance_scanner.getDistanceScanner().start();
 		}
 
 		PrintWriter pw = response.getWriter();
@@ -64,34 +72,61 @@ public class SSEServlet extends HttpServlet {
 				pointArray.clear();
 				pointArray.addAll(SynchronListHandler.getPointVector());
 
-				for (Point p : pointArray) {
-					pointList += "{\"x\":\"" + Double.toString(p.getX())
-							+ "\",\"y\":" + Double.toString(p.getY()) + "},";
+				// Vector<clusterLineStrip> vClS =
+				// dbscan.getClustersAsLines(SynchronListHandler.getPointVector(),1);
+
+				for (Point cp : pointArray) {
+					pointList += "{\"x\":\"" + Double.toString(cp.getX())
+							+ "\",\"y\":" + Double.toString(cp.getY()) + "},";
 				}
+
 				break;
 			case 2:
 
 				CopyOnWriteArrayList<Cluster> cVector = new CopyOnWriteArrayList<Cluster>();
-				
+
 				cVector.addAll(SynchronListHandler.getClusterVector());
-				
+
 				for (Cluster c : cVector) {
 					pointList += "{\"x\":\""
 							+ Double.toString(c.getMinCorner().getX())
 							+ "\",\"y\":\""
 							+ Double.toString(c.getMinCorner().getY())
 							+ "\",\"l\":\""
-							+ Double.toString(Math.floor(Math.abs(c.getMaxCorner().getX()
+							+ Double.toString(Math.floor(Math.abs(c
+									.getMaxCorner().getX()
 									- c.getMinCorner().getX())))
 							+ "\",\"w\":\""
-							+ Double.toString(Math.floor(Math.abs(c.getMaxCorner().getY()
+							+ Double.toString(Math.floor(Math.abs(c
+									.getMaxCorner().getY()
 									- c.getMinCorner().getY()))) + "\"},";
 				}
 				break;
+
+			case 3:
+
+				CopyOnWriteArrayList<clusterLineStrip> clS = new CopyOnWriteArrayList<clusterLineStrip>();
+				clS.addAll(SynchronListHandler.getClusterLines());
+
+				for (clusterLineStrip cl : clS) {
+					pointList += "{\"i\":\""
+							+ Integer.toString(cl.getClusterId()) + ",\"list\":[";
+					for (Point cp : cl.getLineStripPoints()) {
+						pointList += "{\"x\":\""
+								+ Double.toString(cp.getX()) + "\",\"y\":"
+								+ Double.toString(cp.getY()) + "},";
+					}
+
+					pointList += "]},";
+				}
+
+				break;
+
 			}
 			if (pointList != "") {
 				pointList = pointList.substring(0, pointList.length() - 1);
-				pw.print("data: {\"d\":"+Integer.toString(dataIndex)+",\"pointList\":[" + pointList + "]} \n\n");
+				pw.print("data: {\"d\":" + Integer.toString(dataIndex)
+						+ ",\"pointList\":[" + pointList + "]} \n\n");
 				pw.flush();
 			}
 
@@ -101,7 +136,7 @@ public class SSEServlet extends HttpServlet {
 				sseCount--;
 				if (sseCount == 0) {
 					System.out.println("SCN:Interrupted");
-					scn.interrupt();
+					Distance_scanner.getDistanceScanner().interrupt();
 				}
 			}
 		}

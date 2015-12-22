@@ -44,10 +44,16 @@ public class SocketMessage {
 			Distance_scanner.getDistanceScanner().stopRecording();
 		break;
 		case 35:
-			if(SSEServlet.dataIndex==1){
+			switch(SSEServlet.dataIndex){
+			case 1:
 				SSEServlet.dataIndex = 2;
-			}else{
+				break;
+			case 2:
+				SSEServlet.dataIndex = 3;
+				break;
+			case 3:
 				SSEServlet.dataIndex = 1;
+				break;
 			}
 			System.out.println("DataIndex changed");
 			break;

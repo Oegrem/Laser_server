@@ -59,6 +59,35 @@ function sseDataListener(event) {
 			ctx.fillRect(x, y, l, w);
 		}
 		break;
+	case 3:
+		for(var i=0; i<pList.length;i++){
+			var color = pList.i;
+			ctx.beginPath();
+			ctx.moveTo(pList.list[0].x,pList.list[0].y);
+			for(var c=1; c<pList.list.length; c++){
+				ctx.lineTo(pList.list[c].x,pList.list[c].y);				
+				console.log(pList.list[c].x);
+			}
+			switch(color%5){
+			case 0:
+				context.strokeStyle = '#00ffff';
+				break;
+			case 1:
+				context.strokeStyle = '#00ff00';
+				break;
+			case 2:
+				context.strokeStyle = '#0000ff';
+				break;
+			case 3:
+				context.strokeStyle = '#800080';
+				break;
+			case 4:
+				context.strokeStyle = '#ffff00';
+				break;
+			}
+			ctx.stroke();
+		}
+		break;
 	}
 	
 }
