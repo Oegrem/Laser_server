@@ -19,22 +19,6 @@ public class SocketMessage {
 
 		messageType = jObject.getInt("messageType");
 		switch (messageType) {
-		case 1:
-			System.out.println("loginName empfangen: "
-					+ jObject.getString("loginName"));
-			message[0] = jObject.getString("loginName");
-			break;
-		case 5:
-			System.out.println("Katalog geändert: "
-					+ jObject.getString("catName"));
-			message[0] = jObject.getString("catName");
-			break;
-		case 7:
-			System.out.println("StartGame empfangen");
-			break;
-		case 10:
-			message[0] = jObject.getLong("selection");
-			break;
 		case 11:
 			System.out.println("Connection successful");
 			Distance_scanner.getDistanceScanner().recordSimFile("file1");
@@ -49,9 +33,6 @@ public class SocketMessage {
 				SSEServlet.dataIndex = 2;
 				break;
 			case 2:
-				SSEServlet.dataIndex = 3;
-				break;
-			case 3:
 				SSEServlet.dataIndex = 1;
 				break;
 			}
@@ -68,12 +49,8 @@ public class SocketMessage {
 		jObject.put("messageType", messageType);
 
 		switch (messageType) {
-		case 2:
-			jObject.put("playerId", message[0]);
+		default:
 			break;
-		case 255:
-			jObject.put("fatal", message[0]);
-			jObject.put("errorMessage", message[1]);
 		}
 		jsonString = jObject.toString();
 	}
